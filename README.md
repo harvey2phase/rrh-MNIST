@@ -1,1 +1,1 @@
-# rrh
+# Representational Rényi Heterogeneity
