@@ -1,7 +1,4 @@
-# Representational Rényi Heterogeneity
-
-## To Do
-- Try different initialization weights
+# Representational Rényi Heterogeneity on MNIST
 
 ## Plots
 
