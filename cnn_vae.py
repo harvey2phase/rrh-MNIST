@@ -52,47 +52,57 @@ from torch.optim.lr_scheduler import StepLR
 GPU = True
 device = torch.device("cuda:0" if GPU and torch.cuda.is_available() else "cpu")
 
-def plot(x, x_recon):
+"""## Debugging Tools"""
+
+def plot(x, x_recon, kind):
     count = 0
-    for i in range(10):
+    if kind == "train":
+        recon_c = "red"
+    else:
+        recon_c = "green"
+    for i in range(1):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.scatter(np.linspace(0, 127, 128), x.detach().cpu()[i], c = "blue")
-        ax.scatter(np.linspace(0, 127, 128), x_recon.detach().cpu()[i], c = "red")
+        ax.scatter(np.linspace(0, 127, 128), x_recon.detach().cpu()[i], c = recon_c)
         plt.show()
 
 """# Load MNIST"""
 
-TRAIN_BATCH_SIZE = 64
-TEST_BATCH_SIZE = 1000
+BATCH_SIZE = 64
 
-def load_mnist(train, batch_size):
+def load_mnist(train, batch_size = BATCH_SIZE):
     img_transform = transforms.Compose([
         transforms.ToTensor(),
         #transforms.Normalize((0.1307,), (0.3081,)),
     ])
     
-    dataset = MNIST(
-        root = './data/MNIST',
-        download = True,
-        train = train,
-        transform = img_transform,
+    return DataLoader(
+        dataset = MNIST(
+            root = './data/MNIST',
+            download = True,
+            train = train,
+            transform = img_transform,
+        ),
+        batch_size = batch_size,
+        shuffle = train,
+        drop_last = train,
     )
-    return DataLoader(dataset, batch_size = batch_size, shuffle = True)
+    
+def to_numpy_arrays(dataloader):
+    data = list(dataloader)
+    data = [[sample[0].numpy(), sample[1].numpy()] for sample in data]
+    X = np.vstack([sample[0] for sample in data])
+    y = np.hstack([sample[1] for sample in data])
+    return X, y
 
-train_dataloader = load_mnist(True, TRAIN_BATCH_SIZE)
-test_dataloader = load_mnist(False, TEST_BATCH_SIZE)
+train_dataloader = load_mnist(True)
+test_dataloader = load_mnist(False)
 
-# Place into numpy arrays for easier manipulation
-traindata = list(train_dataloader)
-traindata = [[sample[0].numpy(), sample[1].numpy()] for sample in traindata]
-train_X = np.vstack([sample[0] for sample in traindata])
-train_y = np.hstack([sample[1] for sample in traindata])
+TEST_LEN = len(test_dataloader.dataset)
 
-testdata = list(test_dataloader)
-testdata = [[sample[0].numpy(), sample[1].numpy()] for sample in testdata]
-test_X = np.vstack([sample[0] for sample in testdata])
-test_y = np.hstack([sample[1] for sample in testdata])
+train_X, train_y = to_numpy_arrays(train_dataloader)
+test_X, test_y = to_numpy_arrays(test_dataloader)
 
 """# Model Definitions"""
 
@@ -105,6 +115,7 @@ def freeze(model):
 CNN_EPOCH = 14
 LR = 1.0
 GAMMA = 0.7
+LOG_INT = 10
 
 class Net(nn.Module):
     def __init__(self):
@@ -139,6 +150,7 @@ class Net(nn.Module):
 
 def train(model, optimizer):
     model.train()
+    total_loss, samples = 0, 0
     
     for batch_idx, (data, target) in enumerate(train_dataloader):
         data, target = data.to(device), target.to(device)
@@ -147,9 +159,20 @@ def train(model, optimizer):
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
+        
+        total_loss += loss.item()
+        samples += len(data)
+        
+        if batch_idx % args.log_interval == 0:
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                epoch, batch_idx * len(data), len(train_loader.dataset),
+                100. * batch_idx / len(train_loader), loss.item()))
 
-def test(model):
+def test(model, train = False):
     model.eval()
+    if train:
+        model.train()
+        
     test_loss = 0
     correct = 0
     with torch.no_grad():
@@ -162,11 +185,17 @@ def test(model):
             pred = output.argmax(dim = 1, keepdim = True)  
             correct += pred.eq(target.view_as(pred)).sum().item()
 
-    test_loss /= len(test_dataloader.dataset)
+    test_loss /= TEST_LEN
 
-    print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-        test_loss, correct, len(test_dataloader.dataset),
-        100. * correct / len(test_dataloader.dataset)))
+    if train == True:
+        train = "train"
+    else:
+        train = "eval"
+    print(
+        'Test ({}) set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+            train, test_loss, correct, TEST_LEN, 100. * correct / TEST_LEN,
+        )
+    )
 
 """### Train and save CNN"""
 
@@ -177,6 +206,7 @@ def create_and_train_cnn():
     scheduler = StepLR(optimizer, step_size=1, gamma=GAMMA)
     for epoch in range(1, CNN_EPOCH + 1):
         train(cnn, optimizer)
+        test(cnn, train = True)
         test(cnn)
         scheduler.step()
         
@@ -198,34 +228,50 @@ def load_cnn(model_name, optimizer_name = None):
 """## VAE"""
 
 LAT_DIM = 2
-CAPACITY = 64
+OBS_DIM = 128
+CAPACITY1 = 128 * 2 ** 5
+CAPACITY2 = 64 * 2 ** 5
 LRN_RATE = 1e-3
+WEIGHT_DECAY = 1e-5
 VAR_BETA = 1
+VAE_EPOCH = 70
+#DROPOUT_PROB = 0.5
 
 class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
         
         self.hidden1 = nn.Linear(
-            in_features = 128,
-            out_features = CAPACITY,
+            in_features = OBS_DIM,
+            out_features = CAPACITY1,
         )
-        self.dropout1 = nn.Dropout(0.5)
-        self.bn1 = nn.BatchNorm1d(CAPACITY)
+        
+        self.hidden2 = nn.Linear(
+            in_features = CAPACITY1,
+            out_features = CAPACITY2,
+        )
+        
+        self.bn1 = nn.BatchNorm1d(CAPACITY1)
+        self.bn2 = nn.BatchNorm1d(CAPACITY2)
+        
         self.fc_mu = nn.Linear(
-            in_features = CAPACITY,
+            in_features = CAPACITY2,
             out_features = LAT_DIM,
         )
         self.fc_logvar = nn.Linear(
-            in_features = CAPACITY,
+            in_features = CAPACITY2,
             out_features = LAT_DIM,
         )
         
     def forward(self, x):
         x = self.hidden1(x)
-        #x = self.bn1(x)
+        x = self.bn1(x)
         x = F.relu(x)
-        #x = self.dropout1(x)
+        
+        x = self.hidden2(x)
+        x = self.bn2(x)
+        x = F.relu(x)
+        
         x_mu = self.fc_mu(x)
         x_logvar = self.fc_logvar(x)
         return x_mu, x_logvar
@@ -236,22 +282,37 @@ class Decoder(nn.Module):
         
         self.hidden1 = nn.Linear(
             in_features = LAT_DIM,
-            out_features = CAPACITY,
+            out_features = CAPACITY2,
         )
-        self.dropout1 = nn.Dropout(0.5)
-        self.bn1 = nn.BatchNorm1d(CAPACITY)
+        self.hidden2 = nn.Linear(
+            in_features = CAPACITY2,
+            out_features = CAPACITY1,
+        )
+        
+        self.bn1 = nn.BatchNorm1d(CAPACITY2)
+        self.bn2 = nn.BatchNorm1d(CAPACITY1)
+        
         self.output = nn.Linear(
-            in_features = CAPACITY,
-            out_features = 128,
+            in_features = CAPACITY1,
+            out_features = OBS_DIM,
         )
 
     def forward(self, x):
         x = self.hidden1(x)
-        #x = self.bn1(x)
+        x = self.bn1(x)
         x = F.relu(x)
-        #x = self.dropout1(x)
+        
+        x = self.hidden2(x)
+        x = self.bn2(x)
+        x = F.relu(x)
         x = self.output(x)
-        x = x.view(x.size(0), 128)
+        print("Before:")
+        print(x)
+        print("Size:")
+        print(x.size(0))
+        x = x.view(x.size(0), OBS_DIM)
+        print("After:")
+        print(x)
         return x
 
 class VariationalAutoencoder(nn.Module):
@@ -278,8 +339,8 @@ class VariationalAutoencoder(nn.Module):
 
 def reconstruction_error(recon_x, x):
     return F.mse_loss(
-        recon_x.view(-1, 128),
-        x.view(-1, 128),
+        recon_x.view(-1, OBS_DIM),
+        x.view(-1, OBS_DIM),
         reduction = "sum",
     )
 
@@ -292,37 +353,24 @@ def vae_loss(recon_loss, mu, logvar):
 
 """
 
-def train_vae(
-    vae = None, optimizer = None, evaluate = True, norm = True, 
-):
-    """ Trains, and returns one VAE model """
+def train_vae(vae, optimizer, evaluate = True):
     
-    if vae == None:
-        vae = VariationalAutoencoder()
-        vae = vae.to(device)
-    
-    if optimizer == None:
-        optimizer = torch.optim.Adam(
-            params = vae.parameters(),
-            lr = LRN_RATE,
-            weight_decay = 1e-5,
-        )
+    vae.train()
     
     num_params = sum(p.numel() for p in vae.parameters() if p.requires_grad)
     print('Number of parameters: %d' % num_params)
     
-    vae.train()
-    
     if evaluate:
-        train_recon_loss, train_loss = [], []
-        test_recon_loss, test_loss = [], []
+        train_loss, train_recon_loss = [], []
+        test_train_loss, test_train_recon_loss = [], []
+        test_eval_loss, test_eval_recon_loss = [], []
     
     print("Training: ", end = "")
     for epoch in range(VAE_EPOCH):
         if evaluate:
             train_loss.append(0)
             train_recon_loss.append(0)
-        num_batches = 0
+            image_count = 0
         
         for image_batch, _ in train_dataloader:
             
@@ -330,7 +378,7 @@ def train_vae(
             image_batch = cnn.penultimate_layers(image_batch)
     
             image_batch_recon, latent_mu, latent_logvar = vae(image_batch)
-            #plot(image_batch, image_batch_recon)
+            #plot(image_batch, image_batch_recon, kind = "train")
             
             recon_loss = reconstruction_error(image_batch_recon, image_batch)
             loss = vae_loss(recon_loss, latent_mu, latent_logvar)
@@ -343,20 +391,23 @@ def train_vae(
                 train_loss[-1] += loss.item()
                 train_recon_loss[-1] += recon_loss
                 
-            num_batches += 1
+                image_count += len(image_batch)
             
         if evaluate:
-            train_loss[-1] /= num_batches
-            train_loss[-1] /= TRAIN_BATCH_SIZE
-            train_recon_loss[-1] /= num_batches
-            train_recon_loss[-1] /= TRAIN_BATCH_SIZE
+            vae.train()
+            train_loss[-1] /= image_count
+            train_recon_loss[-1] /= image_count
         
-            recon_loss_avg, loss_avg = eval_model(vae)
-            test_recon_loss.append(recon_loss_avg / TEST_BATCH_SIZE)
-            test_loss.append(loss_avg / TEST_BATCH_SIZE)
-            
-            recon_loss_avg, loss_avg = eval_model(vae)
+            vae.train()
+            recon_loss_avg, loss_avg = eval_vae(vae)
+            test_train_loss.append(loss_avg)
+            test_train_recon_loss.append(recon_loss_avg)
 
+            vae.eval()
+            recon_loss_avg, loss_avg = eval_vae(vae)
+            test_eval_loss.append(loss_avg)
+            test_eval_recon_loss.append(recon_loss_avg)
+            
             vae.train()
         
         print("%d, " % (epoch+1), end = "")
@@ -366,15 +417,15 @@ def train_vae(
         return (
             vae, optimizer,
             [np.array(train_loss), np.array(train_recon_loss)],
-            [np.array(test_loss), np.array(test_recon_loss)],
+            [np.array(test_train_loss), np.array(test_train_recon_loss)],
+            [np.array(test_eval_loss), np.array(test_eval_recon_loss)],
         )
     return vae, optimizer
-
-def eval_model(vae):
-    vae.eval()
     
-    test_loss_avg, test_recon_loss_avg, num_batches = 0, 0, 0
-    sum = 0
+def eval_vae(vae):
+    
+    test_loss, test_recon_loss = 0, 0
+    image_count = 0
     for image_batch, _ in test_dataloader:
         
         with torch.no_grad():
@@ -383,45 +434,53 @@ def eval_model(vae):
             image_batch = cnn.penultimate_layers(image_batch)
     
             image_batch_recon, latent_mu, latent_logvar = vae(image_batch)
-            #plot(image_batch, image_batch_recon)
+            #plot(image_batch, image_batch_recon, kind = "test")
             
             recon_loss = reconstruction_error(image_batch_recon, image_batch)
             loss = vae_loss(recon_loss, latent_mu, latent_logvar)
     
-            test_recon_loss_avg += recon_loss
-            test_loss_avg += loss.item()
-            num_batches += 1
+            test_recon_loss += recon_loss
+            test_loss += loss.item()
+            
+            image_count += len(image_batch)
         
-    test_recon_loss_avg /= num_batches
-    test_loss_avg /= num_batches
+    return test_recon_loss / image_count, test_loss / image_count
 
-    return test_recon_loss_avg, test_loss_avg
-    #print('average reconstruction error: %f' % (test_recon_loss_avg))
-    #print('average error: %f' % (test_loss_avg))
-
-def plot_loss(train_losses, test_losses):
+def plot_loss(train_losses, test_train_losses, test_eval_losses):
     plt.ion()
 
     plotlabels = ["Total error", "Reconstruction error", "KL divergence"]
     train_losses.append(train_losses[0] - train_losses[1])
-    test_losses.append(test_losses[0] - test_losses[1])
+    test_train_losses.append(test_train_losses[0] - test_train_losses[1])
+    test_eval_losses.append(test_eval_losses[0] - test_eval_losses[1])
     
     ncols = 3
     fig, ax = plt.subplots(ncols = ncols, figsize = (9, 2.5))
     
     for i in range(ncols): 
         ax[i].plot(train_losses[i], c = "blue", label = "training")
-        ax[i].plot(test_losses[i], c = "green", label = "test")
+        ax[i].plot(test_train_losses[i], c = "green", label = "test (train)")
+        ax[i].plot(test_eval_losses[i], c = "red", label = "test (eval)")
             
         ax[i].set_title(plotlabels[i])
         
-    plt.xlabel('Epochs')
     plt.tight_layout()
     plt.legend()
     #plt.show()
     plt.savefig(os.path.join(RESULTS_FOLDER, "training_curve.png"), dpi = 600)
 
 """### Load VAE"""
+
+def new_vae():
+    vae = VariationalAutoencoder()
+    vae = vae.to(device)
+    
+    optimizer = torch.optim.Adam(
+        params = vae.parameters(),
+        lr = LRN_RATE,
+        weight_decay = WEIGHT_DECAY,
+    )
+    return vae, optimizer
 
 def load_vae(folder_name, vae_name, optimizer_name = "adam.pth"):
     folder_name = os.path.join(RESULTS, folder_name)
@@ -432,7 +491,7 @@ def load_vae(folder_name, vae_name, optimizer_name = "adam.pth"):
     optimizer = torch.optim.Adam(
         params = vae.parameters(),
         lr = LRN_RATE,
-        weight_decay = 1e-5,
+        weight_decay = WEIGHT_DECAY,
     )
     optimizer.load_state_dict(torch.load(
         os.path.join(folder_name, optimizer_name)
@@ -492,7 +551,7 @@ def mvn_renyi_alpha(C,  q=1):
 
 """## Calculation"""
 
-def calculate_rrh(vae, X = train_X, y = train_y):
+def calculate_rrh(vae, X, y):
     gammas, alphas, betas = [], [], []
     for i in range(10):
         mu, logvar = vae.encoder(
@@ -576,10 +635,11 @@ def plot_rrh(gammas, alphas, betas, filename, sigmas = None):
 """# Experiments"""
 
 #cnn = create_and_train_cnn()
-cnn = load_cnn("12-18_epoch=14.pth")
+cnn = load_cnn("12-19_epoch=14.pth")
 freeze(cnn)
+cnn.eval()
 
-RESULTS = os.path.join(MY_DRIVE, "results")
+RESULTS = os.path.join(MY_DRIVE, "results/dropout")
 mkdir(RESULTS)
 
 RESULTS_FOLDER = os.path.join(
@@ -587,31 +647,30 @@ RESULTS_FOLDER = os.path.join(
 )
 mkdir(RESULTS_FOLDER)
 
-VAE_EPOCH = 10
-epoch = 0
-#vae1, optimizer = load_vae("12-18_00-27", vae_name = "vae_epoch=30.pth")
-vae1, optimizer, train_losses, test_losses = train_vae(
-    #vae = vae1, optimizer = optimizer,
-    evaluate = True,
+trained_epoch = 0
+
+#vae, optimizer = load_vae("12-18_18-38", vae_name = "vae_epoch=30.pth")
+vae, optimizer = new_vae()
+
+vae, optimizer, train_losses, test_train_losses, test_eval_losses = train_vae(
+    vae, optimizer, evaluate = True,
 )
 
-torch.save(vae1.state_dict(), os.path.join(
-    RESULTS_FOLDER, "vae_epoch=" + str(epoch + VAE_EPOCH) + ".pth"
+torch.save(vae.state_dict(), os.path.join(
+    RESULTS_FOLDER, "vae_epoch=" + str(trained_epoch + VAE_EPOCH) + ".pth"
 ))
 torch.save(optimizer.state_dict(), os.path.join(RESULTS_FOLDER, "adam.pth"))
 with open(os.path.join(RESULTS_FOLDER, "vae.txt"), "w+") as f:
-    f.write(str(vae1))
+    f.write(str(vae))
 drive.flush_and_unmount()
 drive.mount(GDRIVE)
 
-recon_loss_avg, loss_avg = eval_model(vae1)
+plot_loss(train_losses, test_train_losses, test_eval_losses)
 
-plot_loss(train_losses, test_losses)
-
-gammas, alphas, betas = calculate_rrh(vae1)
+vae.train()
+gammas, alphas, betas = calculate_rrh(vae, train_X, train_y)
 plot_rrh(gammas, alphas, betas, filename = "het_train")
 
-gammas, alphas, betas = calculate_rrh(
-    vae1, X = test_X, y = test_y,
-)
+vae.eval()
+gammas, alphas, betas = calculate_rrh(vae, test_X, test_y)
 plot_rrh(gammas, alphas, betas, filename = "het_test")
