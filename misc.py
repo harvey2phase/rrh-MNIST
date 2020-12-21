@@ -1,4 +1,5 @@
 import os
+import datetime
 
 def mkdir(path):
     if os.path.exists(path):
@@ -24,3 +25,14 @@ def plot(x, x_recon, kind):
         ax.scatter(np.linspace(0, 127, 128), x_recon.detach().cpu()[i], c = recon_c)
         #plt.show()
         plt.savefig(os.path.join(TEST, "training_curve.png"), dpi = 600)
+
+def make_exp_folder(parent_folder, exp_name):
+    exp_folder = os.path.join(parent_folder, exp_name)
+    mkdir(exp_folder)
+    exp_folder = os.path.join(
+        parent_folder,
+        exp_folder,
+        datetime.datetime.now().strftime("%m-%d_%H-%M"),
+    )
+    mkdir(exp_folder)
+    return exp_folder

@@ -1,4 +1,16 @@
+import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
+LAT_DIM = 2
+OBS_DIM = 128
+CAPACITY1 = 128 * 2 ** 5
+CAPACITY2 = 64 * 2 ** 5
+LRN_RATE = 1e-3
+WEIGHT_DECAY = 1e-5
+VAR_BETA = 1
+VAE_EPOCH = 10
+#DROPOUT_PROB = 0.5
 
 class Encoder(nn.Module):
     def __init__(self):
@@ -111,7 +123,7 @@ def vae_loss(recon_loss, mu, logvar):
 
 """
 
-def train_vae(vae, optimizer, evaluate = True):
+def train_vae(vae, optimizer, device, evaluate = True):
 
     vae.train()
 
@@ -157,12 +169,12 @@ def train_vae(vae, optimizer, evaluate = True):
             train_recon_loss[-1] /= image_count
 
             vae.train()
-            recon_loss_avg, loss_avg = eval_vae(vae)
+            recon_loss_avg, loss_avg = eval_vae(vae, device)
             test_train_loss.append(loss_avg)
             test_train_recon_loss.append(recon_loss_avg)
 
             vae.eval()
-            recon_loss_avg, loss_avg = eval_vae(vae)
+            recon_loss_avg, loss_avg = eval_vae(vae, device)
             test_eval_loss.append(loss_avg)
             test_eval_recon_loss.append(recon_loss_avg)
 
@@ -180,7 +192,7 @@ def train_vae(vae, optimizer, evaluate = True):
         )
     return vae, optimizer
 
-def eval_vae(vae):
+def eval_vae(vae, device):
 
     test_loss, test_recon_loss = 0, 0
     image_count = 0
@@ -204,7 +216,7 @@ def eval_vae(vae):
 
     return test_recon_loss / image_count, test_loss / image_count
 
-def plot_loss(train_losses, test_train_losses, test_eval_losses):
+def plot_loss(train_losses, test_train_losses, test_eval_losses, save_folder):
     plt.ion()
 
     plotlabels = ["Total error", "Reconstruction error", "KL divergence"]
@@ -225,11 +237,11 @@ def plot_loss(train_losses, test_train_losses, test_eval_losses):
     plt.tight_layout()
     plt.legend()
     #plt.show()
-    plt.savefig(os.path.join(TEST, "training_curve.png"), dpi = 600)
+    plt.savefig(os.path.join(save_folder, "training_curve.png"), dpi = 600)
 
 """### Load VAE"""
 
-def new_vae():
+def new_vae(device):
     vae = VariationalAutoencoder()
     vae = vae.to(device)
 
@@ -240,7 +252,7 @@ def new_vae():
     )
     return vae, optimizer
 
-def load_vae(folder_name, vae_name, optimizer_name = "adam.pth"):
+def load_vae(folder_name, vae_name, device, optimizer_name = "adam.pth"):
     folder_name = os.path.join(RESULTS, folder_name)
 
     vae = VariationalAutoencoder()

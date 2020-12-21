@@ -1,7 +1,12 @@
+import os
+import datetime
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim.lr_scheduler import StepLR
+
+from misc import mkdir
 
 CNN_EPOCH = 14
 LR = 1.0
@@ -93,7 +98,9 @@ def test_cnn(model, device, dataloader, train = False):
     )
 
 
-def create_and_train_cnn(device, train_dataloader, test_dataloader):
+def create_and_train_cnn(
+    device, train_dataloader, test_dataloader, save_folder,
+):
     cnn = ConvolutionalNeuralNet().to(device)
     optimizer = torch.optim.Adadelta(cnn.parameters(), lr = LR)
 
@@ -107,16 +114,15 @@ def create_and_train_cnn(device, train_dataloader, test_dataloader):
     date = datetime.date.today().strftime("%m-%d")
     model_name = date + "_epoch=" + str(CNN_EPOCH) + ".pth"
     optimizer_name = date + "_adadelta" + ".pth"
-    cnn_path = os.path.join(MY_DRIVE, "cnn")
-    mkdir(cnn_path)
-    torch.save(cnn.state_dict(), os.path.join(cnn_path, model_name))
-    torch.save(optimizer.state_dict(), os.path.join(cnn_path, optimizer_name))
+    mkdir(save_folder)
+    torch.save(cnn.state_dict(), os.path.join(save_folder, model_name))
+    torch.save(optimizer.state_dict(), os.path.join(save_folder, optimizer_name))
     return cnn
 
 
-def load_cnn(model_name, device, optimizer_name = None):
+def load_cnn(model_name, device, load_folder, optimizer_name = None):
     cnn = ConvolutionalNeuralNet()
-    cnn.load_state_dict(torch.load(MY_DRIVE + "cnn/" + model_name))
+    cnn.load_state_dict(torch.load(os.path.join(load_folder, model_name)))
     cnn.to(device)
     return cnn
 
