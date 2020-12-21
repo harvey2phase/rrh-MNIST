@@ -234,7 +234,7 @@ CAPACITY2 = 64 * 2 ** 5
 LRN_RATE = 1e-3
 WEIGHT_DECAY = 1e-5
 VAR_BETA = 1
-VAE_EPOCH = 70
+VAE_EPOCH = 10
 #DROPOUT_PROB = 0.5
 
 class Encoder(nn.Module):
@@ -265,11 +265,11 @@ class Encoder(nn.Module):
         
     def forward(self, x):
         x = self.hidden1(x)
-        x = self.bn1(x)
+        #x = self.bn1(x)
         x = F.relu(x)
         
         x = self.hidden2(x)
-        x = self.bn2(x)
+        #x = self.bn2(x)
         x = F.relu(x)
         
         x_mu = self.fc_mu(x)
@@ -299,20 +299,15 @@ class Decoder(nn.Module):
 
     def forward(self, x):
         x = self.hidden1(x)
-        x = self.bn1(x)
+        #x = self.bn1(x)
         x = F.relu(x)
         
         x = self.hidden2(x)
-        x = self.bn2(x)
+        #x = self.bn2(x)
         x = F.relu(x)
+        
         x = self.output(x)
-        print("Before:")
-        print(x)
-        print("Size:")
-        print(x.size(0))
         x = x.view(x.size(0), OBS_DIM)
-        print("After:")
-        print(x)
         return x
 
 class VariationalAutoencoder(nn.Module):
@@ -639,7 +634,7 @@ cnn = load_cnn("12-19_epoch=14.pth")
 freeze(cnn)
 cnn.eval()
 
-RESULTS = os.path.join(MY_DRIVE, "results/dropout")
+RESULTS = os.path.join(MY_DRIVE, "results/no_bn")
 mkdir(RESULTS)
 
 RESULTS_FOLDER = os.path.join(
@@ -649,7 +644,7 @@ mkdir(RESULTS_FOLDER)
 
 trained_epoch = 0
 
-#vae, optimizer = load_vae("12-18_18-38", vae_name = "vae_epoch=30.pth")
+#vae, optimizer = load_vae("12-20_00-24", vae_name = "vae_epoch=50.pth")
 vae, optimizer = new_vae()
 
 vae, optimizer, train_losses, test_train_losses, test_eval_losses = train_vae(
