@@ -1,8 +1,17 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.optim.lr_scheduler import StepLR
+
+CNN_EPOCH = 14
+LR = 1.0
+GAMMA = 0.7
+LOG_INT = 10
 
 
 class ConvolutionalNeuralNet(nn.Module):
     def __init__(self):
-        super(Net, self).__init__()
+        super(ConvolutionalNeuralNet, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
         self.dropout1 = nn.Dropout(0.25)
@@ -29,13 +38,12 @@ class ConvolutionalNeuralNet(nn.Module):
         x = self.fc1(x)
         return x
 
-"""### Training and Evaluation"""
 
-def train(model, optimizer):
+def train_cnn(model, optimizer, device, dataloader):
     model.train()
     total_loss, samples = 0, 0
 
-    for batch_idx, (data, target) in enumerate(train_dataloader):
+    for batch_idx, (data, target) in enumerate(dataloader):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
@@ -53,7 +61,8 @@ def train(model, optimizer):
                 100. * batch_idx / len(train_loader), loss.item()))
         """
 
-def test(model, train = False):
+
+def test_cnn(model, device, dataloader, train = False):
     model.eval()
     if train:
         model.train()
@@ -61,7 +70,7 @@ def test(model, train = False):
     test_loss = 0
     correct = 0
     with torch.no_grad():
-        for data, target in test_dataloader:
+        for data, target in dataloader:
             data, target = data.to(device), target.to(device)
             output = model(data)
             # sum up batch loss
@@ -70,7 +79,8 @@ def test(model, train = False):
             pred = output.argmax(dim = 1, keepdim = True)
             correct += pred.eq(target.view_as(pred)).sum().item()
 
-    test_loss /= TEST_LEN
+    test_len = len(dataloader.dataset)
+    test_loss /= test_len
 
     if train == True:
         train = "train"
@@ -78,21 +88,20 @@ def test(model, train = False):
         train = "eval"
     print(
         'Test ({}) set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-            train, test_loss, correct, TEST_LEN, 100. * correct / TEST_LEN,
+            train, test_loss, correct, test_len, 100. * correct / test_len,
         )
     )
 
-"""### Train and save CNN"""
 
-def create_and_train_cnn():
-    cnn = Net().to(device)
+def create_and_train_cnn(device, train_dataloader, test_dataloader):
+    cnn = ConvolutionalNeuralNet().to(device)
     optimizer = torch.optim.Adadelta(cnn.parameters(), lr = LR)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=GAMMA)
     for epoch in range(1, CNN_EPOCH + 1):
-        train(cnn, optimizer)
-        test(cnn, train = True)
-        test(cnn)
+        train_cnn(cnn, optimizer, device, train_dataloader)
+        #test_cnn(cnn, device, test_dataloader, train = True)
+        test_cnn(cnn, device, test_dataloader)
         scheduler.step()
 
     date = datetime.date.today().strftime("%m-%d")
@@ -104,10 +113,14 @@ def create_and_train_cnn():
     torch.save(optimizer.state_dict(), os.path.join(cnn_path, optimizer_name))
     return cnn
 
-"""### Load saved CNN"""
 
-def load_cnn(model_name, optimizer_name = None):
-    cnn = Net()
+def load_cnn(model_name, device, optimizer_name = None):
+    cnn = ConvolutionalNeuralNet()
     cnn.load_state_dict(torch.load(MY_DRIVE + "cnn/" + model_name))
     cnn.to(device)
     return cnn
+
+
+def freeze(model):
+    for param in model.parameters():
+        param.requires_grad = False
