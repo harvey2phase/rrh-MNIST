@@ -1,0 +1,5 @@
+numpy
+pytorch
+matplotlib
+seaborn
+torchvision
