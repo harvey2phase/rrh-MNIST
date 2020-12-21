@@ -9,7 +9,7 @@ import torch.nn as nn
 import torchvision.utils
 
 from cnn import ConvolutionalNeuralNet, create_and_train_cnn, freeze, load_cnn
-from vae import new_vae, load_vae, train_vae
+from vae import new_vae, load_vae, train_vae, plot_loss
 from load_mnist import load_mnist, to_numpy_arrays
 from misc import plot, mkdir, make_exp_folder
 
