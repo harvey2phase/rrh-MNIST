@@ -123,7 +123,10 @@ def vae_loss(recon_loss, mu, logvar):
 
 """
 
-def train_vae(vae, optimizer, device, evaluate = True):
+def train_vae(
+    vae, cnn, optimizer, device, train_dataloader, test_dataloader,
+    evaluate = True,
+):
 
     vae.train()
 
@@ -169,12 +172,12 @@ def train_vae(vae, optimizer, device, evaluate = True):
             train_recon_loss[-1] /= image_count
 
             vae.train()
-            recon_loss_avg, loss_avg = eval_vae(vae, device)
+            recon_loss_avg, loss_avg = eval_vae(vae, cnn, device, test_dataloader)
             test_train_loss.append(loss_avg)
             test_train_recon_loss.append(recon_loss_avg)
 
             vae.eval()
-            recon_loss_avg, loss_avg = eval_vae(vae, device)
+            recon_loss_avg, loss_avg = eval_vae(vae, cnn, device, test_dataloader)
             test_eval_loss.append(loss_avg)
             test_eval_recon_loss.append(recon_loss_avg)
 
@@ -192,7 +195,7 @@ def train_vae(vae, optimizer, device, evaluate = True):
         )
     return vae, optimizer
 
-def eval_vae(vae, device):
+def eval_vae(vae, cnn, device, test_dataloader):
 
     test_loss, test_recon_loss = 0, 0
     image_count = 0
