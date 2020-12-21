@@ -1,5 +1,5 @@
+import numpy as np
 
-"""# RRH for Gaussian Mixtures"""
 
 def scale_to_cov(scales):
     return np.vstack([np.expand_dims(np.diagflat(s), 0) for s in scales])
@@ -7,7 +7,8 @@ def scale_to_cov(scales):
 def pool_covariance(means, covs):
     K = covs.shape[0]
     p = np.repeat(1/K, K)
-    cov_ = np.einsum('ijk,i->jk', covs, p) + np.einsum('ij,ik,i->jk', means, means, p)
+    cov_ = np.einsum('ijk,i->jk', covs, p)
+    cov_ += np.einsum('ij,ik,i->jk', means, means, p)
     mu_ = np.einsum('ij,i->j', means, p)
     return cov_ - np.einsum('i,j->ij', mu_, mu_)
 
@@ -30,7 +31,9 @@ def mvn_renyi(C, q=1):
     return out
 
 def mvn_renyi_alpha(C,  q=1):
-    """ Computes the alpha-heterogeneity for a Gaussian mixture where each sample has equal weight
+    """
+    Computes the alpha-heterogeneity for a Gaussian mixture where each sample
+    has equal weight
 
     Arguments:
 

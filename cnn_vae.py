@@ -46,11 +46,10 @@ cnn = load_cnn("12-21_epoch=14.pth", device, CNN_FOLDER)
 freeze(cnn)
 cnn.eval()
 
-# Train VAE -----------------------------------------------------------
+# Train VAE --------------------------------------------------------------------
 
 exp_folder = make_exp_folder(RESULTS_FOLDER, "no_bn")
 
-trained_epoch = 0
 #vae, optimizer = load_vae("12-20_00-24", "vae_epoch=50.pth", device)
 vae, optimizer = new_vae(device)
 
@@ -59,19 +58,14 @@ vae, optimizer, train_losses, test_train_losses, test_eval_losses = train_vae(
     evaluate = True,
 )
 
-torch.save(vae.state_dict(), os.path.join(
-    exp_folder, "vae_epoch=" + str(trained_epoch + VAE_EPOCH) + ".pth"
-))
+torch.save(vae.state_dict(), os.path.join(exp_folder, "vae.pth"))
 torch.save(optimizer.state_dict(), os.path.join(exp_folder, "adam.pth"))
 with open(os.path.join(exp_folder, "vae.txt"), "w+") as f:
     f.write(str(vae))
-drive.flush_and_unmount()
-drive.mount(GDRIVE)
 
 plot_loss(train_losses, test_train_losses, test_eval_losses, exp_folder)
 
 # Compute RRH ------------------------------------------------------------------
-
 vae.train()
 gammas, alphas, betas = calculate_rrh(vae, train_X, train_y)
 plot_rrh(gammas, alphas, betas, filename = "het_train")
