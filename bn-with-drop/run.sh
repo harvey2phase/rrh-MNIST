@@ -13,4 +13,4 @@
 conda init bash
 source ~/.bashrc
 conda activate ~/venvs/pytorch
-python3 ./cnn_vae.py
+python3 ./main.py

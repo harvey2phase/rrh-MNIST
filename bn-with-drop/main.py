@@ -1,4 +1,5 @@
 import os
+import sys
 import urllib
 import numpy as np
 import seaborn as sns
@@ -8,25 +9,30 @@ import torch
 import torch.nn as nn
 import torchvision.utils
 
-from feature_vae import new_vae, load_vae, train_vae, plot_loss
-
-import sys
-sys.path.insert(1, "/home/harveyw/scratch/rrh-MNIST")
-from misc import plot, mkdir, make_exp_folder
-from rrh import calculate_rrh, plot_rrh
-sys.path.insert(1, "/home/harveyw/scratch/rrh-MNIST/cnn-vae")
-from cnn import ConvolutionalNeuralNet, create_and_train_cnn, freeze, load_cnn
-from load_mnist import load_mnist, to_numpy_arrays
-
 GPU = True
 device = torch.device("cuda:0" if GPU and torch.cuda.is_available() else "cpu")
 
 sns.set()
 
-# Static folder definitions ----------------------------------------------------
+# Load local folders and modules -----------------------------------------------
 
-MNIST_FOLDER = "/home/harveyw/scratch/data"
-RRH_FOLDER = "/home/harveyw/scratch/rrh-MNIST"
+DRIVE = "/home/harveyw/scratch"
+MNIST_FOLDER = os.path.join(DRIVE, "data")
+RRH_FOLDER = os.path.join(DRIVE, "rrh-MNIST")
+curr_folder = os.getcwd()
+print("currr:", curr_folder)
+
+sys.path.insert(1, os.path.join(curr_folder))
+from feature_vae import new_vae, load_vae, train_vae, plot_loss
+
+sys.path.insert(1, RRH_FOLDER)
+from rrh import calculate_rrh, plot_rrh
+from misc import plot, mkdir, make_exp_folder
+
+sys.path.insert(1, os.path.join(RRH_FOLDER, "cnn-vae"))
+from cnn import ConvolutionalNeuralNet, create_and_train_cnn, freeze, load_cnn
+from load_mnist import load_mnist, to_numpy_arrays
+
 
 # Load MNIST -------------------------------------------------------------------
 
@@ -56,11 +62,11 @@ def one_vae_experiment(
     exp_folder: str,
     lat_dim,
 ):
-    exp_folder = os.path.join(results_folder, exp_folder)
+    exp_folder = os.path.join(curr_folder, exp_folder)
 
     """
     vae, optimizer = load_vae(
-        os.path.join(results_folder, exp_name, "12-21_15-18"), "vae.pth", device,
+        os.path.join(curr_folder, exp_name, "12-21_15-18"), "vae.pth", device,
     )
     """
     vae, optimizer = new_vae(
@@ -93,6 +99,5 @@ def one_vae_experiment(
     plot_rrh(gammas, alphas, betas, exp_folder, "het_test")
 
 
-results_folder = os.path.join(RRH_FOLDER, "no-bn-with-drop")
 for lat_dim in range(3, 7):
-    one_vae_experiment("lat_dim=" + str(i), lat_dim)
+    one_vae_experiment("lat_dim=" + str(lat_dim), lat_dim)
