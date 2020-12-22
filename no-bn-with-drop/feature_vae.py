@@ -1,5 +1,4 @@
 import os
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -16,6 +15,28 @@ WEIGHT_DECAY = 1e-5
 VAR_BETA = 1
 VAE_EPOCH = 50
 DROPOUT_PROB = 0.5
+
+class VariationalAutoencoder(nn.Module):
+    def __init__(self):
+        super(VariationalAutoencoder, self).__init__()
+
+        self.encoder = Encoder()
+        self.decoder = Decoder()
+
+    def forward(self, x):
+        latent_mu, latent_logvar = self.encoder(x)
+        latent = self.latent_sample(latent_mu, latent_logvar)
+        x_recon = self.decoder(latent)
+        return x_recon, latent_mu, latent_logvar
+
+    def latent_sample(self, mu, logvar):
+        if self.training:
+            # the reparameterization trick
+            std = logvar.mul(0.5).exp_()
+            eps = torch.empty_like(std).normal_()
+            return eps.mul(std).add_(mu)
+        else:
+            return mu
 
 class Encoder(nn.Module):
     def __init__(self):
@@ -104,43 +125,7 @@ class Decoder(nn.Module):
         x = x.view(x.size(0), OBS_DIM)
         return x
 
-class VariationalAutoencoder(nn.Module):
-    def __init__(self):
-        super(VariationalAutoencoder, self).__init__()
-
-        self.encoder = Encoder()
-        self.decoder = Decoder()
-
-    def forward(self, x):
-        latent_mu, latent_logvar = self.encoder(x)
-        latent = self.latent_sample(latent_mu, latent_logvar)
-        x_recon = self.decoder(latent)
-        return x_recon, latent_mu, latent_logvar
-
-    def latent_sample(self, mu, logvar):
-        if self.training:
-            # the reparameterization trick
-            std = logvar.mul(0.5).exp_()
-            eps = torch.empty_like(std).normal_()
-            return eps.mul(std).add_(mu)
-        else:
-            return mu
-
-def reconstruction_error(recon_x, x):
-    return F.mse_loss(
-        recon_x.view(-1, OBS_DIM),
-        x.view(-1, OBS_DIM),
-        reduction = "sum",
-    )
-
-def vae_loss(recon_loss, mu, logvar):
-    kl_divergence = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    return recon_loss + VAR_BETA * kl_divergence
-
-"""### Training and Evaluation
-
-
-"""
+# Train ========================================================================
 
 def train_vae(
     vae, cnn, optimizer, device, train_dataloader, test_dataloader,
@@ -218,6 +203,8 @@ def train_vae(
         )
     return vae, optimizer
 
+# Eval =========================================================================
+
 def eval_vae(vae, cnn, device, test_dataloader):
 
     test_loss, test_recon_loss = 0, 0
@@ -242,6 +229,8 @@ def eval_vae(vae, cnn, device, test_dataloader):
 
     return test_recon_loss / image_count, test_loss / image_count
 
+# Loss =========================================================================
+
 def plot_loss(train_losses, test_train_losses, test_eval_losses, save_folder):
     plt.ion()
 
@@ -265,7 +254,18 @@ def plot_loss(train_losses, test_train_losses, test_eval_losses, save_folder):
     #plt.show()
     plt.savefig(os.path.join(save_folder, "training_curve.png"), dpi = 600)
 
-"""### Load VAE"""
+def reconstruction_error(recon_x, x):
+    return F.mse_loss(
+        recon_x.view(-1, OBS_DIM),
+        x.view(-1, OBS_DIM),
+        reduction = "sum",
+    )
+
+def vae_loss(recon_loss, mu, logvar):
+    kl_divergence = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    return recon_loss + VAR_BETA * kl_divergence
+
+# Make/load VAE ================================================================
 
 def new_vae(
     device,

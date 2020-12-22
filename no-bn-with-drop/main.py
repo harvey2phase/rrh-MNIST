@@ -25,23 +25,22 @@ sns.set()
 
 # Static folder definitions ----------------------------------------------------
 
-MNIST_DATA = "/home/harveyw/scratch/data"
-MY_DRIVE = "/home/harveyw/scratch"
-RESULTS_FOLDER = os.path.join(MY_DRIVE, "rrh-MNIST")
-CNN_FOLDER = os.path.join(MY_DRIVE, "rrh-MNIST-results", "cnn")
+MNIST_FOLDER = "/home/harveyw/scratch/data"
+RRH_FOLDER = "/home/harveyw/scratch/rrh-MNIST"
 
 # Load MNIST -------------------------------------------------------------------
 
 BATCH_SIZE = 64
 
-train_dataloader = load_mnist(True, BATCH_SIZE, MNIST_DATA)
-test_dataloader = load_mnist(False, BATCH_SIZE, MNIST_DATA)
+train_dataloader = load_mnist(True, BATCH_SIZE, MNIST_FOLDER)
+test_dataloader = load_mnist(False, BATCH_SIZE, MNIST_FOLDER)
 
 train_X, train_y = to_numpy_arrays(train_dataloader)
 test_X, test_y = to_numpy_arrays(test_dataloader)
 
 # Train/load CNN ---------------------------------------------------------------
 
+CNN_FOLDER = os.path.join(RRH_FOLDER, "trained_cnn")
 """
 cnn = create_and_train_cnn(
     device, train_dataloader, test_dataloader, CNN_FOLDER,
@@ -54,13 +53,14 @@ cnn.eval()
 # Train VAE --------------------------------------------------------------------
 
 def one_vae_experiment(
+    exp_folder: str,
     lat_dim,
 ):
-    exp_folder = make_exp_folder(RESULTS_FOLDER, exp_name)
+    exp_folder = os.path.join(results_folder, exp_folder)
 
     """
     vae, optimizer = load_vae(
-        os.path.join(RESULTS_FOLDER, exp_name, "12-21_15-18"), "vae.pth", device,
+        os.path.join(results_folder, exp_name, "12-21_15-18"), "vae.pth", device,
     )
     """
     vae, optimizer = new_vae(
@@ -93,6 +93,6 @@ def one_vae_experiment(
     plot_rrh(gammas, alphas, betas, exp_folder, "het_test")
 
 
-exp_name = "no_bn_with_drop"
+results_folder = os.path.join(RRH_FOLDER, "no-bn-with-drop")
 for lat_dim in range(3, 7):
-    one_vae_experiment(lat_dim)
+    one_vae_experiment("lat_dim=" + str(i), lat_dim)
