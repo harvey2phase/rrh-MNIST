@@ -2,8 +2,8 @@
 
 ```
 cnn-vae
-   |
-   -----> test
+ |
+ -----> test
         |
         -----> main.py
         |
