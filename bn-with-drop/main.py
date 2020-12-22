@@ -25,13 +25,11 @@ print("currr:", curr_folder)
 sys.path.insert(1, os.path.join(curr_folder))
 from feature_vae import new_vae, load_vae, train_vae, plot_loss
 
-sys.path.insert(1, RRH_FOLDER)
-from rrh import calculate_rrh, plot_rrh
-from misc import plot, mkdir, make_exp_folder
-
 sys.path.insert(1, os.path.join(RRH_FOLDER, "cnn-vae"))
 from cnn import ConvolutionalNeuralNet, create_and_train_cnn, freeze, load_cnn
 from load_mnist import load_mnist, to_numpy_arrays
+from rrh import calculate_rrh, plot_rrh
+from misc import plot, mkdir, make_exp_folder
 
 
 # Load MNIST -------------------------------------------------------------------
