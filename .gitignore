@@ -1,4 +1,5 @@
 *.out
+*.pth
 
 # Created by https://www.toptal.com/developers/gitignore/api/vim,jupyternotebooks,macos,windows,linux,visualstudio,visualstudiocode,python,pycharm
 # Edit at https://www.toptal.com/developers/gitignore?templates=vim,jupyternotebooks,macos,windows,linux,visualstudio,visualstudiocode,python,pycharm
