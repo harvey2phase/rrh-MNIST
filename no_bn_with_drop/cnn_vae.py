@@ -8,8 +8,12 @@ import torch
 import torch.nn as nn
 import torchvision.utils
 
-from cnn import ConvolutionalNeuralNet, create_and_train_cnn, freeze, load_cnn
 from vae import new_vae, load_vae, train_vae, plot_loss
+
+import sys
+# insert at 1, 0 is the script path (or '' in REPL)
+sys.path.insert(1, "/home/harveyw/scratch/rrh-MNIST/")
+from cnn import ConvolutionalNeuralNet, create_and_train_cnn, freeze, load_cnn
 from load_mnist import load_mnist, to_numpy_arrays
 from misc import plot, mkdir, make_exp_folder
 from rrh import calculate_rrh, plot_rrh
@@ -23,8 +27,8 @@ sns.set()
 
 MNIST_DATA = "/home/harveyw/scratch/data"
 MY_DRIVE = "/home/harveyw/scratch"
-RESULTS_FOLDER = os.path.join(MY_DRIVE, "rrh-MNIST-results")
-CNN_FOLDER = os.path.join(RESULTS_FOLDER, "cnn")
+RESULTS_FOLDER = os.path.join(MY_DRIVE, "rrh-MNIST")
+CNN_FOLDER = os.path.join(MY_DRIVE, "rrh-MNIST-results", "cnn")
 
 # Load MNIST -------------------------------------------------------------------
 
@@ -89,6 +93,6 @@ def one_vae_experiment(
     plot_rrh(gammas, alphas, betas, exp_folder, "het_test")
 
 
-exp_name = "bn_and_dropout"
+exp_name = "no_bn_with_drop"
 for lat_dim in range(3, 7):
     one_vae_experiment(lat_dim)
