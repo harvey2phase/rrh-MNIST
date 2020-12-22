@@ -4,13 +4,13 @@
 cnn-vae
  |
  -----> test
-        |
-        -----> main.py
-        |
-        -----> feature_vae.py
-        |
-        -----> sbatch.sh
-        |
-        -----> results
+         |
+         -----> main.py
+         |
+         -----> feature_vae.py
+         |
+         -----> sbatch.sh
+         |
+         -----> results
         
 ```
