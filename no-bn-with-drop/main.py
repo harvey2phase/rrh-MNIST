@@ -8,15 +8,15 @@ import torch
 import torch.nn as nn
 import torchvision.utils
 
-from vae import new_vae, load_vae, train_vae, plot_loss
+from feature_vae import new_vae, load_vae, train_vae, plot_loss
 
 import sys
-# insert at 1, 0 is the script path (or '' in REPL)
-sys.path.insert(1, "/home/harveyw/scratch/rrh-MNIST/")
-from cnn import ConvolutionalNeuralNet, create_and_train_cnn, freeze, load_cnn
-from load_mnist import load_mnist, to_numpy_arrays
+sys.path.insert(1, "/home/harveyw/scratch/rrh-MNIST")
 from misc import plot, mkdir, make_exp_folder
 from rrh import calculate_rrh, plot_rrh
+sys.path.insert(1, "/home/harveyw/scratch/rrh-MNIST/cnn-vae")
+from cnn import ConvolutionalNeuralNet, create_and_train_cnn, freeze, load_cnn
+from load_mnist import load_mnist, to_numpy_arrays
 
 GPU = True
 device = torch.device("cuda:0" if GPU and torch.cuda.is_available() else "cpu")
