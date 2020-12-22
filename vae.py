@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -5,15 +7,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-LAT_DIM = 2
+LAT_DIM = 2 * 2
 OBS_DIM = 128
 CAPACITY1 = 128 * 2 ** 5
 CAPACITY2 = 64 * 2 ** 5
 LRN_RATE = 1e-3
 WEIGHT_DECAY = 1e-5
 VAR_BETA = 1
-VAE_EPOCH = 10
-#DROPOUT_PROB = 0.5
+VAE_EPOCH = 50
+DROPOUT_PROB = 0.5
 
 class Encoder(nn.Module):
     def __init__(self):
@@ -22,15 +24,20 @@ class Encoder(nn.Module):
         self.hidden1 = nn.Linear(
             in_features = OBS_DIM,
             out_features = CAPACITY1,
+            bias = False,
         )
 
         self.hidden2 = nn.Linear(
             in_features = CAPACITY1,
             out_features = CAPACITY2,
+            bias = False,
         )
 
         self.bn1 = nn.BatchNorm1d(CAPACITY1)
         self.bn2 = nn.BatchNorm1d(CAPACITY2)
+
+        self.dropout1 = nn.Dropout(DROPOUT_PROB)
+        self.dropout2 = nn.Dropout(DROPOUT_PROB)
 
         self.fc_mu = nn.Linear(
             in_features = CAPACITY2,
@@ -43,12 +50,14 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         x = self.hidden1(x)
-        #x = self.bn1(x)
+        x = self.bn1(x)
         x = F.relu(x)
+        x = self.dropout1(x)
 
         x = self.hidden2(x)
-        #x = self.bn2(x)
+        x = self.bn2(x)
         x = F.relu(x)
+        x = self.dropout2(x)
 
         x_mu = self.fc_mu(x)
         x_logvar = self.fc_logvar(x)
@@ -61,11 +70,16 @@ class Decoder(nn.Module):
         self.hidden1 = nn.Linear(
             in_features = LAT_DIM,
             out_features = CAPACITY2,
+            bias = False,
         )
         self.hidden2 = nn.Linear(
             in_features = CAPACITY2,
             out_features = CAPACITY1,
+            bias = False,
         )
+
+        self.dropout1 = nn.Dropout(DROPOUT_PROB)
+        self.dropout2 = nn.Dropout(DROPOUT_PROB)
 
         self.bn1 = nn.BatchNorm1d(CAPACITY2)
         self.bn2 = nn.BatchNorm1d(CAPACITY1)
@@ -77,12 +91,14 @@ class Decoder(nn.Module):
 
     def forward(self, x):
         x = self.hidden1(x)
-        #x = self.bn1(x)
+        x = self.bn1(x)
         x = F.relu(x)
+        x = self.dropout1(x)
 
         x = self.hidden2(x)
-        #x = self.bn2(x)
+        x = self.bn2(x)
         x = F.relu(x)
+        x = self.dropout2(x)
 
         x = self.output(x)
         x = x.view(x.size(0), OBS_DIM)
@@ -247,7 +263,35 @@ def plot_loss(train_losses, test_train_losses, test_eval_losses, save_folder):
 
 """### Load VAE"""
 
-def new_vae(device):
+def new_vae(
+    device,
+    lat_dim = 2 * 2,
+    obs_dim = 128,
+    capacity1 = 128 * 2 ** 5,
+    capacity2 = 64 * 2 ** 5,
+    lrn_rate = 1e-3,
+    weight_decay = 1e-5,
+    var_beta = 1,
+    vae_epoch = 50,
+):
+    global LAT_DIM
+    global OBS_DIM
+    global CAPACITY1
+    global CAPACITY2
+    global LRN_RATE
+    global WEIGHT_DECAY
+    global VAR_BETA
+    global VAE_EPOCH
+
+    LAT_DIM = lat_dim
+    OBS_DIM = obs_dim
+    CAPACITY1 = capacity1
+    CAPACITY2 = capacity2
+    LRN_RATE = lrn_rate
+    WEIGHT_DECAY = weight_decay
+    VAR_BETA = var_beta
+    VAE_EPOCH = vae_epoch
+
     vae = VariationalAutoencoder()
     vae = vae.to(device)
 
@@ -259,7 +303,6 @@ def new_vae(device):
     return vae, optimizer
 
 def load_vae(folder_name, vae_name, device, optimizer_name = "adam.pth"):
-    folder_name = os.path.join(RESULTS, folder_name)
 
     vae = VariationalAutoencoder()
     vae.load_state_dict(torch.load(os.path.join(folder_name, vae_name)))

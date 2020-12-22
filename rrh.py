@@ -1,4 +1,8 @@
 import numpy as np
+import matplotlib.pyplot as plt
+
+import torch
+import os
 
 
 def scale_to_cov(scales):
@@ -55,7 +59,7 @@ def mvn_renyi_alpha(C,  q=1):
 
 """## Calculation"""
 
-def calculate_rrh(vae, X, y):
+def calculate_rrh(vae, cnn, device, X, y):
     gammas, alphas, betas = [], [], []
     for i in range(10):
         mu, logvar = vae.encoder(
@@ -93,7 +97,7 @@ def het_avg(matrix):
 
 """## Plotting"""
 
-def plot_rrh(gammas, alphas, betas, filename, sigmas = None):
+def plot_rrh(gammas, alphas, betas, save_folder, filename, sigmas = None):
     if not (len(gammas) == len(alphas) or len(gammas) == len(betas)):
         sys.exit("Mismatched matrix size")
     n = len(gammas)
@@ -134,4 +138,4 @@ def plot_rrh(gammas, alphas, betas, filename, sigmas = None):
             )
     plt.tight_layout()
     #plt.show()
-    plt.savefig(os.path.join(TEST, filename + ".png"), dpi = 600)
+    plt.savefig(os.path.join(save_folder, filename + ".png"), dpi = 600)
