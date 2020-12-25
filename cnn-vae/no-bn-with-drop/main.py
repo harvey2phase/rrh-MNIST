@@ -60,6 +60,7 @@ def one_vae_experiment(
     lat_dim,
 ):
     exp_folder = os.path.join(curr_folder, exp_folder)
+    mkdir (exp_folder)
 
     """
     vae, optimizer = load_vae(

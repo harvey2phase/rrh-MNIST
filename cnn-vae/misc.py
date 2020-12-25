@@ -1,9 +1,10 @@
 import os
 import datetime
 
-def mkdir(path):
+def mkdir(path, i = 1):
     if os.path.exists(path):
         print("Directory %s already exists!" % path)
+        mkdir(os.path.join(path, str(i + 1)), i + 1)
     else:
         try:
             os.mkdir(path)
@@ -21,8 +22,12 @@ def plot(x, x_recon, kind):
     for i in range(1):
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.scatter(np.linspace(0, 127, 128), x.detach().cpu()[i], c = "blue")
-        ax.scatter(np.linspace(0, 127, 128), x_recon.detach().cpu()[i], c = recon_c)
+        ax.scatter(
+            np.linspace(0, 127, 128), x.detach().cpu()[i], c = "blue",
+        )
+        ax.scatter(
+            np.linspace(0, 127, 128), x_recon.detach().cpu()[i], c = recon_c,
+        )
         #plt.show()
         plt.savefig(os.path.join(TEST, "training_curve.png"), dpi = 600)
 
