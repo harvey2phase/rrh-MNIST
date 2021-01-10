@@ -87,10 +87,10 @@ def het_sigma(matrix, avg = None):
     return np.sqrt(mse / n)
 
 def het_sum(matrix):
-    sum = matrix[0] + matrix[1]
+    total = matrix[0] + matrix[1]
     for i in range(2, len(matrix)):
-        sum += matrix[i]
-    return sum
+        total += matrix[i]
+    return total
 
 def het_avg(matrix):
     return het_sum(matrix) / len(matrix)
@@ -139,3 +139,19 @@ def plot_rrh(gammas, alphas, betas, save_folder, filename, sigmas = None):
     plt.tight_layout()
     #plt.show()
     plt.savefig(os.path.join(save_folder, filename + ".png"), dpi = 600)
+
+def plot_rrh_matrices(
+    gamma_matrix, alpha_matrix, beta_matrix, savefolder, filename,
+):
+    gamma_avg = het_avg(gamma_matrix)
+    alpha_avg = het_avg(alpha_matrix)
+    beta_avg = het_avg(beta_matrix)
+
+    gamma_sigma = het_sigma(gamma_matrix)
+    alpha_sigma = het_sigma(alpha_matrix)
+    beta_sigma = het_sigma(beta_matrix)
+
+    plot_rrh(
+        gamma_avg, alpha_avg, beta_avg, save_folder, filename,
+        sigmas = [gamma_sigma, alpha_sigma, beta_sigma],
+    )

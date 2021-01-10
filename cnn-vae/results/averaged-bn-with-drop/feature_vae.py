@@ -307,6 +307,14 @@ def new_vae(
     return vae, optimizer
 
 def load_vae(folder_name, vae_name, device, optimizer_name = "adam.pth"):
+    """
+    Example:
+
+        vae, optimizer = load_vae(
+            os.path.join(curr_folder, exp_name, "12-21_15-18"),
+            "vae.pth", device,
+        )
+    """
 
     vae = VariationalAutoencoder()
     vae.load_state_dict(torch.load(os.path.join(folder_name, vae_name)))

@@ -27,7 +27,7 @@ from feature_vae import new_vae, load_vae, train_vae, plot_loss
 sys.path.insert(1, os.path.join(RRH_FOLDER, "cnn-vae"))
 from cnn import ConvolutionalNeuralNet, create_and_train_cnn, freeze, load_cnn
 from load_mnist import load_mnist, to_numpy_arrays
-from rrh import calculate_rrh, plot_rrh
+from rrh import calculate_rrh, plot_rrh, plot_rrh_matrices
 from misc import plot, mkdir, make_exp_folder
 
 
@@ -56,16 +56,11 @@ cnn.eval()
 # Train VAE --------------------------------------------------------------------
 
 def one_vae_experiment(
-    exp_folder: str,
-    lat_dim,
+    exp_folder: str, lat_dim: int,
+    train_gamma_matrix, train_alpha_matrix, train_beta_matrix,
+    test_gamma_matrix, test_alpha_matrix, test_beta_matrix,
 ):
-    exp_folder = os.path.join(curr_folder, exp_folder)
 
-    """
-    vae, optimizer = load_vae(
-        os.path.join(curr_folder, exp_name, "12-21_15-18"), "vae.pth", device,
-    )
-    """
     vae, optimizer = new_vae(
         device,
         lat_dim = lat_dim, lrn_rate = 1e-4, vae_epoch = 70,
@@ -87,14 +82,39 @@ def one_vae_experiment(
 
     # Compute RRH --------------------------------------------------------------
 
-    vae.train()
-    gammas, alphas, betas = calculate_rrh(vae, cnn, device, train_X, train_y)
-    plot_rrh(gammas, alphas, betas, exp_folder, "het_train")
-
     vae.eval()
     gammas, alphas, betas = calculate_rrh(vae, cnn, device, test_X, test_y)
-    plot_rrh(gammas, alphas, betas, exp_folder, "het_test")
+    train_gamma_matrix.append(gammas)
+    train_alpha_matrix.append(alphas)
+    train_beta_matrix.append(betas)
+    plot_rrh_matrices(
+        train_gamma_matrix, train_alpha_matrix, train_beta_matrix,
+        exp_folder, "het_test",
+    )
+
+    vae.train()
+    gammas, alphas, betas = calculate_rrh(vae, cnn, device, train_X, train_y)
+    test_gamma_matrix.append(gammas)
+    test_alpha_matrix.append(alphas)
+    test_beta_matrix.append(betas)
+    plot_rrh_matrices(
+        train_gamma_matrix, train_alpha_matrix, train_beta_matrix,
+        exp_folder, "het_train",
+    )
 
 
+def experiments(N: int, lat_dim: int,  exp_folder: str):
+    exp_folder = os.path.join(curr_folder, exp_folder)
+    mkdir(exp_folder)
+    train_gamma_matrix, train_alpha_matrix, train_beta_matrix = [], [], []
+    test_gamma_matrix, test_alpha_matrix, test_beta_matrix = [], [], []
+
+    for i in range(N):
+        one_vae_experiment(
+            exp_folder, lat_dim,
+            train_gamma_matrix, train_alpha_matrix, train_beta_matrix,
+            test_gamma_matrix, test_alpha_matrix, test_beta_matrix,
+        )
+N = 5
 for lat_dim in range(3, 7):
-    one_vae_experiment("lat_dim=" + str(lat_dim), lat_dim)
+    experiments(N, lat_dim, "lat_dim=" + str(lat_dim))
