@@ -45,17 +45,12 @@ class Encoder(nn.Module):
         self.hidden1 = nn.Linear(
             in_features = OBS_DIM,
             out_features = CAPACITY1,
-            bias = False,
         )
 
         self.hidden2 = nn.Linear(
             in_features = CAPACITY1,
             out_features = CAPACITY2,
-            bias = False,
         )
-
-        self.bn1 = nn.BatchNorm1d(CAPACITY1)
-        self.bn2 = nn.BatchNorm1d(CAPACITY2)
 
         self.dropout1 = nn.Dropout(DROPOUT_PROB)
         self.dropout2 = nn.Dropout(DROPOUT_PROB)
@@ -71,12 +66,10 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         x = self.hidden1(x)
-        x = self.bn1(x)
         x = F.relu(x)
         x = self.dropout1(x)
 
         x = self.hidden2(x)
-        x = self.bn2(x)
         x = F.relu(x)
         x = self.dropout2(x)
 
@@ -91,19 +84,14 @@ class Decoder(nn.Module):
         self.hidden1 = nn.Linear(
             in_features = LAT_DIM,
             out_features = CAPACITY2,
-            bias = False,
         )
         self.hidden2 = nn.Linear(
             in_features = CAPACITY2,
             out_features = CAPACITY1,
-            bias = False,
         )
 
         self.dropout1 = nn.Dropout(DROPOUT_PROB)
         self.dropout2 = nn.Dropout(DROPOUT_PROB)
-
-        self.bn1 = nn.BatchNorm1d(CAPACITY2)
-        self.bn2 = nn.BatchNorm1d(CAPACITY1)
 
         self.output = nn.Linear(
             in_features = CAPACITY1,
@@ -112,12 +100,10 @@ class Decoder(nn.Module):
 
     def forward(self, x):
         x = self.hidden1(x)
-        x = self.bn1(x)
         x = F.relu(x)
         x = self.dropout1(x)
 
         x = self.hidden2(x)
-        x = self.bn2(x)
         x = F.relu(x)
         x = self.dropout2(x)
 
