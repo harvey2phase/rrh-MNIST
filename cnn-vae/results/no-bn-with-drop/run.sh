@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --mem=8G
 #SBATCH --cpus-per-task=8
-#SBATCH --time=2:00:00
+#SBATCH --time=8:00:00
 
 #SBATCH --mail-user=harvey@dal.ca
 #SBATCH --mail-type=ALL

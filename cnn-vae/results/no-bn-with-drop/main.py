@@ -61,6 +61,7 @@ def one_vae_experiment(
     test_gamma_matrix, test_alpha_matrix, test_beta_matrix,
 ):
 
+    mkdir(exp_folder)
     vae, optimizer = new_vae(device, lat_dim = lat_dim)
 
     (
@@ -99,7 +100,7 @@ def experiments(N: int, lat_dim: int,  exp_folder: str):
 
     for i in range(N):
         one_vae_experiment(
-            exp_folder, lat_dim,
+            os.path.join(exp_folder, str(i)), lat_dim,
             train_gamma_matrix, train_alpha_matrix, train_beta_matrix,
             test_gamma_matrix, test_alpha_matrix, test_beta_matrix,
         )

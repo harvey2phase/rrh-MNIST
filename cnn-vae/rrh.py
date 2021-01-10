@@ -141,7 +141,7 @@ def plot_rrh(gammas, alphas, betas, save_folder, filename, sigmas = None):
     plt.savefig(os.path.join(save_folder, filename + ".png"), dpi = 600)
 
 def plot_rrh_matrices(
-    gamma_matrix, alpha_matrix, beta_matrix, savefolder, filename,
+    gamma_matrix, alpha_matrix, beta_matrix, save_folder, filename,
 ):
     gamma_avg = het_avg(gamma_matrix)
     alpha_avg = het_avg(alpha_matrix)
