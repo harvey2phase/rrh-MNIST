@@ -10,10 +10,10 @@ LAT_DIM = 2
 OBS_DIM = 128
 CAPACITY1 = 128 * 2 ** 4
 CAPACITY2 = 64 * 2 ** 4
-LRN_RATE = 1e-3
+LRN_RATE = 1e-4
 WEIGHT_DECAY = 1e-5
 VAR_BETA = 1
-VAE_EPOCH = 50
+VAE_EPOCH = 70
 DROPOUT_PROB = 0.5
 
 class VariationalAutoencoder(nn.Module):

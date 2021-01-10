@@ -61,10 +61,7 @@ def one_vae_experiment(
     test_gamma_matrix, test_alpha_matrix, test_beta_matrix,
 ):
 
-    vae, optimizer = new_vae(
-        device,
-        lat_dim = lat_dim, lrn_rate = 1e-4, vae_epoch = 70,
-    )
+    vae, optimizer = new_vae(device, lat_dim = lat_dim)
 
     (
         vae, optimizer, train_losses, test_train_losses, test_eval_losses,
@@ -87,21 +84,12 @@ def one_vae_experiment(
     train_gamma_matrix.append(gammas)
     train_alpha_matrix.append(alphas)
     train_beta_matrix.append(betas)
-    plot_rrh_matrices(
-        train_gamma_matrix, train_alpha_matrix, train_beta_matrix,
-        exp_folder, "het_test",
-    )
 
     vae.train()
     gammas, alphas, betas = calculate_rrh(vae, cnn, device, train_X, train_y)
     test_gamma_matrix.append(gammas)
     test_alpha_matrix.append(alphas)
     test_beta_matrix.append(betas)
-    plot_rrh_matrices(
-        train_gamma_matrix, train_alpha_matrix, train_beta_matrix,
-        exp_folder, "het_train",
-    )
-
 
 def experiments(N: int, lat_dim: int,  exp_folder: str):
     exp_folder = os.path.join(curr_folder, exp_folder)
@@ -115,6 +103,16 @@ def experiments(N: int, lat_dim: int,  exp_folder: str):
             train_gamma_matrix, train_alpha_matrix, train_beta_matrix,
             test_gamma_matrix, test_alpha_matrix, test_beta_matrix,
         )
+
+    plot_rrh_matrices(
+        train_gamma_matrix, train_alpha_matrix, train_beta_matrix,
+        exp_folder, "het_train",
+    )
+    plot_rrh_matrices(
+        test_gamma_matrix, test_alpha_matrix, test_beta_matrix,
+        exp_folder, "het_test",
+    )
+
 N = 5
 for lat_dim in range(3, 7):
     experiments(N, lat_dim, "lat_dim=" + str(lat_dim))
