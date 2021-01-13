@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torchvision.utils
+import gc
 
 GPU = True
 device = torch.device("cuda:0" if GPU and torch.cuda.is_available() else "cpu")
@@ -92,6 +93,8 @@ def one_vae_experiment(
     test_alpha_matrix.append(alphas)
     test_beta_matrix.append(betas)
 
+    gc.collect()
+
 def experiments(N: int, lat_dim: int,  exp_folder: str):
     exp_folder = os.path.join(curr_folder, exp_folder)
     mkdir(exp_folder)
@@ -115,5 +118,5 @@ def experiments(N: int, lat_dim: int,  exp_folder: str):
     )
 
 N = 5
-for lat_dim in range(3, 7):
+for lat_dim in range(4, 7):
     experiments(N, lat_dim, "lat_dim=" + str(lat_dim))
