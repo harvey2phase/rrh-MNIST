@@ -115,5 +115,5 @@ def experiments(N: int, lat_dim: int,  exp_folder: str):
     )
 
 N = 5
-for lat_dim in range(3, 7):
+for lat_dim in range(4, 7):
     experiments(N, lat_dim, "lat_dim=" + str(lat_dim))
