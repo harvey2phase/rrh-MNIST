@@ -1,0 +1,21 @@
+VariationalAutoencoder(
+  (encoder): Encoder(
+    (hidden1): Linear(in_features=128, out_features=4096, bias=False)
+    (hidden2): Linear(in_features=4096, out_features=2048, bias=False)
+    (bn1): BatchNorm1d(4096, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (bn2): BatchNorm1d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (dropout1): Dropout(p=0.5, inplace=False)
+    (dropout2): Dropout(p=0.5, inplace=False)
+    (fc_mu): Linear(in_features=2048, out_features=6, bias=True)
+    (fc_logvar): Linear(in_features=2048, out_features=6, bias=True)
+  )
+  (decoder): Decoder(
+    (hidden1): Linear(in_features=6, out_features=2048, bias=False)
+    (hidden2): Linear(in_features=2048, out_features=4096, bias=False)
+    (dropout1): Dropout(p=0.5, inplace=False)
+    (dropout2): Dropout(p=0.5, inplace=False)
+    (bn1): BatchNorm1d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (bn2): BatchNorm1d(4096, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (output): Linear(in_features=4096, out_features=128, bias=True)
+  )
+)
