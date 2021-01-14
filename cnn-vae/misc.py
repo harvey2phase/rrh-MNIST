@@ -4,7 +4,6 @@ import datetime
 def mkdir(path, i = 1):
     if os.path.exists(path):
         print("Directory %s already exists!" % path)
-        mkdir(os.path.join(path, str(i + 1)), i + 1)
     else:
         try:
             os.mkdir(path)
