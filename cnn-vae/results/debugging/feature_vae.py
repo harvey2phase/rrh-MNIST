@@ -14,7 +14,6 @@ LRN_RATE = 1e-4
 WEIGHT_DECAY = 1e-5
 VAR_BETA = 1
 VAE_EPOCH = 10
-DROPOUT_PROB = 0.5
 
 class VariationalAutoencoder(nn.Module):
     def __init__(self):
@@ -57,9 +56,6 @@ class Encoder(nn.Module):
         self.bn1 = nn.BatchNorm1d(CAPACITY1)
         self.bn2 = nn.BatchNorm1d(CAPACITY2)
 
-        self.dropout1 = nn.Dropout(DROPOUT_PROB)
-        self.dropout2 = nn.Dropout(DROPOUT_PROB)
-
         self.fc_mu = nn.Linear(
             in_features = CAPACITY2,
             out_features = LAT_DIM,
@@ -73,12 +69,10 @@ class Encoder(nn.Module):
         x = self.hidden1(x)
         x = self.bn1(x)
         x = F.relu(x)
-        x = self.dropout1(x)
 
         x = self.hidden2(x)
         x = self.bn2(x)
         x = F.relu(x)
-        x = self.dropout2(x)
 
         x_mu = self.fc_mu(x)
         x_logvar = self.fc_logvar(x)
@@ -99,9 +93,6 @@ class Decoder(nn.Module):
             bias = False,
         )
 
-        self.dropout1 = nn.Dropout(DROPOUT_PROB)
-        self.dropout2 = nn.Dropout(DROPOUT_PROB)
-
         self.bn1 = nn.BatchNorm1d(CAPACITY2)
         self.bn2 = nn.BatchNorm1d(CAPACITY1)
 
@@ -114,12 +105,10 @@ class Decoder(nn.Module):
         x = self.hidden1(x)
         x = self.bn1(x)
         x = F.relu(x)
-        x = self.dropout1(x)
 
         x = self.hidden2(x)
         x = self.bn2(x)
         x = F.relu(x)
-        x = self.dropout2(x)
 
         x = self.output(x)
         x = x.view(x.size(0), OBS_DIM)
