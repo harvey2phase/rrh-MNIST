@@ -62,7 +62,8 @@ def one_vae_experiment(
 ):
 
     mkdir(exp_folder)
-    vae, optimizer = new_vae(device, lat_dim = lat_dim)
+    #vae, optimizer = new_vae(device, lat_dim = lat_dim)
+    vae, optimizer = load_vae(exp_folder, device)
 
     (
         vae, optimizer, train_losses, test_train_losses, test_eval_losses,

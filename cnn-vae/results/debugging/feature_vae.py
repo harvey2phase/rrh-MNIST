@@ -6,11 +6,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-LAT_DIM = 2
+LAT_DIM = 3
 OBS_DIM = 128
-CAPACITY1 = 128 * 2 ** 4
-CAPACITY2 = 64 * 2 ** 4
-LRN_RATE = 1e-4
+CAPACITY1 = 128 * 2 ** 5
+CAPACITY2 = 64 * 2 ** 5
+LRN_RATE = 1e-3
 WEIGHT_DECAY = 1e-5
 VAR_BETA = 1
 VAE_EPOCH = 10
@@ -258,7 +258,7 @@ def vae_loss(recon_loss, mu, logvar):
 
 def new_vae(
     device,
-    lat_dim = 2 * 2,
+    lat_dim = 4,
     obs_dim = 128,
     capacity1 = 128 * 2 ** 5,
     capacity2 = 64 * 2 ** 5,
@@ -292,7 +292,10 @@ def new_vae(
     )
     return vae, optimizer
 
-def load_vae(folder_name, vae_name, device, optimizer_name = "adam.pth"):
+def load_vae(
+    folder_name, device,
+    vae_name = "vae.pth", optimizer_name = "adam.pth",
+):
     """
     Example:
 
