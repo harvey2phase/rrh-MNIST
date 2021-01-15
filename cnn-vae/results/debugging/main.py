@@ -62,8 +62,7 @@ def one_vae_experiment(
 ):
 
     mkdir(exp_folder)
-    #vae, optimizer = new_vae(device, lat_dim = lat_dim)
-    vae, optimizer = load_vae(exp_folder, device)
+    vae, optimizer = new_vae(device, lat_dim = lat_dim)
 
     (
         vae, optimizer, train_losses, test_train_losses, test_eval_losses,
@@ -99,38 +98,22 @@ def experiments(N: int, lat_dim: int,  exp_folder: str):
     train_gamma_matrix, train_alpha_matrix, train_beta_matrix = [], [], []
     test_gamma_matrix, test_alpha_matrix, test_beta_matrix = [], [], []
 
-    if not N == 1:
-        for i in range(N):
-            one_vae_experiment(
-                os.path.join(exp_folder, str(i)), lat_dim,
-                train_gamma_matrix, train_alpha_matrix, train_beta_matrix,
-                test_gamma_matrix, test_alpha_matrix, test_beta_matrix,
-            )
-
-        plot_rrh_matrices(
-            train_gamma_matrix, train_alpha_matrix, train_beta_matrix,
-            exp_folder, "het_train",
-        )
-        plot_rrh_matrices(
-            test_gamma_matrix, test_alpha_matrix, test_beta_matrix,
-            exp_folder, "het_test",
-        )
-    else:
+    for i in range(N):
         one_vae_experiment(
-            exp_folder, lat_dim,
+            os.path.join(exp_folder, str(i)), lat_dim,
             train_gamma_matrix, train_alpha_matrix, train_beta_matrix,
             test_gamma_matrix, test_alpha_matrix, test_beta_matrix,
         )
 
-        plot_rrh(
-            train_gamma_matrix[0], train_alpha_matrix[0], train_beta_matrix[0],
-            exp_folder, "het_train",
-        )
-        plot_rrh(
-            test_gamma_matrix[0], test_alpha_matrix[0], test_beta_matrix[0],
-            exp_folder, "het_test",
-        )
+    plot_rrh_matrices(
+        train_gamma_matrix, train_alpha_matrix, train_beta_matrix,
+        exp_folder, "het_train",
+    )
+    plot_rrh_matrices(
+        test_gamma_matrix, test_alpha_matrix, test_beta_matrix,
+        exp_folder, "het_test",
+    )
 
-N = 1
-lat_dim = 3
-experiments(N, lat_dim, "lat_dim=" + str(lat_dim))
+N = 5
+for lat_dim in range(4, 7):
+    experiments(N, lat_dim, "lat_dim=" + str(lat_dim))

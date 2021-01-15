@@ -6,21 +6,35 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-LAT_DIM = 3
-OBS_DIM = 128
-CAPACITY1 = 128 * 2 ** 5
-CAPACITY2 = 64 * 2 ** 5
-LRN_RATE = 1e-3
-WEIGHT_DECAY = 1e-5
-VAR_BETA = 1
-VAE_EPOCH = 10
-
 class VariationalAutoencoder(nn.Module):
-    def __init__(self):
+    def __init__(
+        self
+        lat_dim = 2,
+        obs_dim = 128,
+        capacity1 = 128 * 2 ** 4,
+        capacity2 = 64 * 2 ** 4,
+        lrn_rate = 1e-4,
+        weight_decay = 1e-5,
+        var_beta = 1,
+        vae_epoch = 70,
+        dropout_prob = 0.5,
+    ):
         super(VariationalAutoencoder, self).__init__()
 
-        self.encoder = Encoder()
+
+        self.encoder = Encoder(
+        lat_dim,
+        obs_dim,
+        capacity1,
+        capacity2,
+        lrn_rate,
+        weight_decay,
+        var_beta,
+        vae_epoch,
+        dropout_prob,
+                )
         self.decoder = Decoder()
+
 
     def forward(self, x):
         latent_mu, latent_logvar = self.encoder(x)
@@ -56,6 +70,9 @@ class Encoder(nn.Module):
         self.bn1 = nn.BatchNorm1d(CAPACITY1)
         self.bn2 = nn.BatchNorm1d(CAPACITY2)
 
+        self.dropout1 = nn.Dropout(DROPOUT_PROB)
+        self.dropout2 = nn.Dropout(DROPOUT_PROB)
+
         self.fc_mu = nn.Linear(
             in_features = CAPACITY2,
             out_features = LAT_DIM,
@@ -69,10 +86,12 @@ class Encoder(nn.Module):
         x = self.hidden1(x)
         x = self.bn1(x)
         x = F.relu(x)
+        x = self.dropout1(x)
 
         x = self.hidden2(x)
         x = self.bn2(x)
         x = F.relu(x)
+        x = self.dropout2(x)
 
         x_mu = self.fc_mu(x)
         x_logvar = self.fc_logvar(x)
@@ -93,6 +112,9 @@ class Decoder(nn.Module):
             bias = False,
         )
 
+        self.dropout1 = nn.Dropout(DROPOUT_PROB)
+        self.dropout2 = nn.Dropout(DROPOUT_PROB)
+
         self.bn1 = nn.BatchNorm1d(CAPACITY2)
         self.bn2 = nn.BatchNorm1d(CAPACITY1)
 
@@ -105,10 +127,12 @@ class Decoder(nn.Module):
         x = self.hidden1(x)
         x = self.bn1(x)
         x = F.relu(x)
+        x = self.dropout1(x)
 
         x = self.hidden2(x)
         x = self.bn2(x)
         x = F.relu(x)
+        x = self.dropout2(x)
 
         x = self.output(x)
         x = x.view(x.size(0), OBS_DIM)
@@ -258,13 +282,14 @@ def vae_loss(recon_loss, mu, logvar):
 
 def new_vae(
     device,
-    lat_dim = 4,
+    lat_dim = 2 * 2,
     obs_dim = 128,
     capacity1 = 128 * 2 ** 5,
     capacity2 = 64 * 2 ** 5,
     lrn_rate = 1e-3,
     weight_decay = 1e-5,
     var_beta = 1,
+    vae_epoch = 50,
 ):
     global LAT_DIM
     global OBS_DIM
@@ -273,6 +298,7 @@ def new_vae(
     global LRN_RATE
     global WEIGHT_DECAY
     global VAR_BETA
+    global VAE_EPOCH
 
     LAT_DIM = lat_dim
     OBS_DIM = obs_dim
@@ -281,6 +307,7 @@ def new_vae(
     LRN_RATE = lrn_rate
     WEIGHT_DECAY = weight_decay
     VAR_BETA = var_beta
+    VAE_EPOCH = vae_epoch
 
     vae = VariationalAutoencoder()
     vae = vae.to(device)
@@ -292,10 +319,7 @@ def new_vae(
     )
     return vae, optimizer
 
-def load_vae(
-    folder_name, device,
-    vae_name = "vae.pth", optimizer_name = "adam.pth",
-):
+def load_vae(folder_name, vae_name, device, optimizer_name = "adam.pth"):
     """
     Example:
 
